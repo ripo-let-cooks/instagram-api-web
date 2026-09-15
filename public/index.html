@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>InstaBridge - Integrasi Instagram API & Two-Way Sync</title>
+  
+  <!-- Modern Typography (Plus Jakarta Sans & JetBrains Mono) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- App Header -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="brand-wrapper">
+        <div class="brand-logo-badge" title="Instagram API Web Sync">📸</div>
+        <div class="brand-text">
+          <h1>InstaBridge</h1>
+          <span class="subtext">Integrasi API Instagram & Two-Way Sync</span>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <!-- Live Connection Badge -->
+        <div id="connectionStatus" class="status-pill" title="Status koneksi Instagram API">
+          <span class="status-dot">●</span>
+          <span id="connectionStatusText">Memeriksa API...</span>
+        </div>
+
+        <!-- Theme Toggle -->
+        <button id="btnThemeToggle" class="theme-toggle-btn" title="Ganti Tema (Dark/Light)" aria-label="Ganti Tema">
+          <span id="themeIcon">☀️</span>
+        </button>
+
+        <!-- User Profile Pill -->
+        <div class="user-pill">
+          <img id="userAvatar" class="user-avatar-sm" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80" alt="Avatar">
+          <span id="userUsername" class="user-username">@loading...</span>
+          <button id="btnAuth" class="btn-auth logout" title="Keluar dari akun">Logout</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Feed Area -->
+  <main class="main-wrapper">
+
+    <!-- Stories Rail Card -->
+    <section class="stories-card" aria-label="Instagram Stories">
+      <div id="storiesRail" class="stories-rail">
+        <!-- Add Story Trigger Item -->
+        <div id="btnAddStory" class="story-item" title="Tambah Story Baru">
+          <div class="story-ring">
+            <div class="story-avatar story-add-btn">+</div>
+          </div>
+          <span class="story-username">Cerita Anda</span>
+        </div>
+        <!-- Dynamic story items will be inserted here -->
+      </div>
+    </section>
+
+    <!-- Create Post Card with Live Media Upload Preview (Fitur #5) -->
+    <section class="create-post-card" aria-label="Buat Postingan Baru">
+      <div class="card-title-row">
+        <h2 class="card-title">Buat Status / Postingan Baru</h2>
+        <span id="captionCounter" style="font-size: 0.75rem; color: var(--text-muted);">0/500</span>
+      </div>
+
+      <form id="createPostForm">
+        <!-- Caption Area -->
+        <div>
+          <label for="postCaption" class="input-label">Caption Status</label>
+          <textarea id="postCaption" class="caption-textarea" placeholder="Tulis sesuatu untuk di-posting ke Web dan Instagram..." maxlength="500"></textarea>
+        </div>
+
+        <!-- Media Upload Drop Area -->
+        <div style="margin-top: 0.75rem;">
+          <label class="input-label">Media Gambar / Foto (Format JPG/PNG/WEBP/MP4)</label>
+          <div id="dropArea" class="media-upload-area">
+            <input type="file" id="mediaFileInput" accept="image/*,video/mp4" style="display: none;">
+            <div class="upload-prompt">
+              <span class="upload-icon">🖼️</span>
+              <strong>Klik untuk memilih foto atau drag & drop ke sini</strong>
+              <span style="font-size: 0.75rem; color: var(--text-muted);">Maksimal 5MB sesuai standar Instagram Graph API</span>
+            </div>
+          </div>
+
+          <!-- Live Image Preview Box (Sesuai Permintaan Fitur #5) -->
+          <div id="mediaPreviewContainer" class="media-preview-container" style="display: none;">
+            <img id="imagePreview" src="" alt="Preview Gambar" style="display: none;">
+            <video id="videoPreview" src="" controls style="display: none;"></video>
+            <button type="button" id="btnRemovePreview" class="btn-remove-preview" title="Hapus foto ini">✕</button>
+          </div>
+        </div>
+
+        <!-- Submit Button -->
+        <div style="margin-top: 1rem; display: flex; justify-content: flex-end;">
+          <button type="submit" id="btnPublish" class="btn-publish">
+            <span>🚀 Posting ke Feed & Instagram</span>
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <!-- Feed Header Row -->
+    <div class="feed-header-row">
+      <h2 class="feed-title">Feed Timeline Terintegrasi</h2>
+      <button id="btnRefreshFeed" style="background: transparent; color: var(--text-secondary); cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; gap: 0.3rem;" title="Sinkronkan Ulang">
+        🔄 Sinkronkan Sekarang
+      </button>
+    </div>
+
+    <!-- Feed List Container -->
+    <section id="feedContainer" style="display: flex; flex-direction: column; gap: 1.5rem;" aria-label="Daftar Postingan">
+      <!-- Loading Skeleton initially -->
+      <div class="post-card skeleton" style="height: 380px;"></div>
+    </section>
+
+  </main>
+
+  <!-- Floating Simulator Drawer & Activity Log Console (Fitur #1 untuk Demo Dosen) -->
+  <aside class="simulator-drawer-wrap" aria-label="Panel Simulator untuk Evaluasi">
+    <button id="btnToggleSimulator" class="simulator-toggle-btn" title="Buka Panel Evaluasi Dosen">
+      <span>⚡</span>
+      <span>Simulator Panel & Log API</span>
+    </button>
+
+    <div id="simulatorDrawer" class="simulator-drawer-card">
+      <div class="simulator-header">
+        <h3>⚡ Panel Simulasi Uji Dosen</h3>
+        <button id="btnCloseSimulator" class="btn-close-simulator" title="Tutup Panel">✕</button>
+      </div>
+
+      <div class="simulator-body">
+        <span class="simulator-section-title">Pemicu Cepat (Simulasi Event Instagram Asli)</span>
+        <div class="sim-btn-group">
+          <button id="btnSimDosenComment" class="sim-action-btn">
+            <span>💬</span>
+            <span>Simulasi Komentar dari IG (@dosen_tester)</span>
+          </button>
+
+          <button id="btnSimIncomingPost" class="sim-action-btn">
+            <span>📸</span>
+            <span>Simulasi Postingan Masuk dari Instagram</span>
+          </button>
+
+          <button id="btnSimIncomingStory" class="sim-action-btn">
+            <span>⏱️</span>
+            <span>Simulasi Story Masuk dari Instagram</span>
+          </button>
+        </div>
+
+        <span class="simulator-section-title" style="margin-top: 0.5rem;">Live Terminal Log REST API</span>
+        <div id="terminalLogs" class="terminal-console">
+          <div class="log-entry">
+            <span class="log-time">[00:00:00]</span>
+            <span class="log-tag">SYSTEM:</span>
+            <span>Terminal log aktif menunggu event API...</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Story Viewer Modal -->
+  <div id="storyModal" class="modal-overlay" aria-modal="true">
+    <div class="story-viewer-card">
+      <div class="story-progress-bar-wrap">
+        <div id="storyProgressFill" class="story-progress-fill"></div>
+      </div>
+      <div class="story-viewer-header">
+        <div style="display: flex; align-items: center; gap: 0.6rem;">
+          <img id="storyViewerAvatar" src="" class="user-avatar-sm" alt="Author">
+          <strong id="storyViewerUsername" style="color: #fff; font-size: 0.88rem;">@user</strong>
+        </div>
+        <button id="btnCloseStory" style="background: transparent; color: #fff; font-size: 1.5rem; cursor: pointer;">✕</button>
+      </div>
+      <img id="storyViewerImg" class="story-viewer-img" src="" alt="Story Content">
+      <div id="storyViewerCaption" class="story-caption-overlay"></div>
+    </div>
+  </div>
+
+  <!-- Story Upload Modal -->
+  <div id="storyUploadModal" class="modal-overlay" aria-modal="true">
+    <div class="create-post-card" style="width: 100%; max-width: 440px; background: var(--bg-surface); border: 1px solid var(--border-medium);">
+      <div class="card-title-row">
+        <h3 class="card-title">Unggah Cerita / Story Baru</h3>
+        <button id="btnCloseStoryUpload" style="background: transparent; color: var(--text-muted); cursor: pointer; font-size: 1.25rem;">✕</button>
+      </div>
+
+      <form id="storyUploadForm" style="display: flex; flex-direction: column; gap: 0.75rem; margin-top: 0.5rem;">
+        <div>
+          <label class="input-label">Pilih Foto Story</label>
+          <input type="file" id="storyFileInput" accept="image/*" required style="padding: 0.5rem; background: var(--bg-surface-elevated); width: 100%; border-radius: var(--radius-sm);">
+        </div>
+        <div>
+          <label class="input-label">Caption Singkat (Opsional)</label>
+          <input type="text" id="storyCaptionInput" class="comment-input" placeholder="Teks singkat cerita..." style="width: 100%; border-radius: var(--radius-sm);">
+        </div>
+        <button type="submit" class="btn-publish" style="margin-top: 0.5rem;">
+          <span>Unggah ke Story</span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Auth Modal (Login / Switch Mode) -->
+  <div id="authModal" class="modal-overlay" aria-modal="true">
+    <div class="create-post-card" style="width: 100%; max-width: 440px; background: var(--bg-surface); border: 1px solid var(--border-medium);">
+      <div class="card-title-row">
+        <h3 class="card-title">Masuk / Autentikasi Akun</h3>
+        <button id="btnCloseAuthModal" style="background: transparent; color: var(--text-muted); cursor: pointer; font-size: 1.25rem;">✕</button>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 0.85rem; margin-top: 0.75rem;">
+        <p style="font-size: 0.85rem; color: var(--text-secondary);">
+          Pilih mode autentikasi untuk tugas integrasi ini:
+        </p>
+
+        <button id="btnQuickDemoLogin" class="btn-publish" style="width: 100%;">
+          <span>✨ Masuk Akun Demo (Rekomendasi Uji Cepat)</span>
+        </button>
+
+        <div style="text-align: center; font-size: 0.75rem; color: var(--text-muted); margin: 0.25rem 0;">— ATAU —</div>
+
+        <div>
+          <label class="input-label" for="metaTokenInput">Masukkan Token Meta Graph API (Opsional)</label>
+          <input type="text" id="metaTokenInput" class="comment-input" placeholder="EAA..." style="width: 100%; border-radius: var(--radius-sm);">
+          <button id="btnSubmitMetaToken" class="sim-action-btn" style="width: 100%; justify-content: center; margin-top: 0.5rem;">
+            Hubungkan Token Meta Asli
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- Application Logic -->
+  <script src="app.js"></script>
+</body>
+</html>
