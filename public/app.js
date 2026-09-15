@@ -334,9 +334,16 @@
   function renderFeed() {
     if (state.posts.length === 0) {
       el.feedContainer.innerHTML = `
-        <div style="background: var(--bg-surface); border: 1px solid var(--border-hairline); border-radius: var(--radius-md); padding: 3rem 1.5rem; text-align: center; color: var(--text-secondary);">
-          <div style="font-size: 0.9rem; font-weight: 600; color: var(--text-primary); margin-bottom: 0.25rem;">Belum ada postingan</div>
-          <div style="font-size: 0.78rem; color: var(--text-muted);">Gunakan form di atas untuk membuat postingan pertama atau picu event dari Dev Tools.</div>
+        <div style="background: var(--bg-surface); border: 1px solid var(--border-hairline); border-radius: var(--radius-lg); padding: 3.5rem 1.5rem; text-align: center; color: var(--text-secondary); box-shadow: var(--shadow-subtle);">
+          <div style="width: 44px; height: 44px; border-radius: 50%; background: var(--bg-surface-elevated); border: 1px solid var(--border-muted); display: inline-flex; align-items: center; justify-content: center; margin-bottom: 0.85rem; color: var(--text-muted);">
+            <svg class="icon icon-lg" viewBox="0 0 24 24">
+              <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+              <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+              <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+            </svg>
+          </div>
+          <div style="font-family: var(--font-serif); font-size: 1.15rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.35rem; letter-spacing: -0.015em;">Belum Ada Postingan</div>
+          <div style="font-family: var(--font-sans); font-size: 0.82rem; font-weight: 400; color: var(--text-muted); max-width: 360px; margin: 0 auto; line-height: 1.5;">Gunakan formulir di atas untuk mempublikasikan konten baru atau jalankan simulasi dari panel Developer Tools.</div>
         </div>
       `;
       return;

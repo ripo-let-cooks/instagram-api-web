@@ -7,7 +7,9 @@
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://api.fontshare.com">
+  <link href="https://api.fontshare.com/v2/css?f[]=zodiak@400,700,800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
   
   <link rel="stylesheet" href="style.css">
 </head>
@@ -218,9 +220,9 @@
       <div style="position: absolute; top: 20px; left: 15px; right: 15px; z-index: 10; display: flex; align-items: center; justify-content: space-between;">
         <div style="display: flex; align-items: center; gap: 0.5rem;">
           <img id="storyViewerAvatar" src="" class="user-avatar-micro" alt="Avatar">
-          <span id="storyViewerUsername" style="font-size: 0.82rem; font-weight: 700; color: #fff;">@user</span>
+          <span id="storyViewerUsername" style="font-family: var(--font-sans); font-size: 0.85rem; font-weight: 600; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,0.6);">@user</span>
         </div>
-        <button id="btnCloseStory" style="cursor: pointer; color: #fff;">
+        <button id="btnCloseStory" style="cursor: pointer; color: #fff; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5));">
           <svg class="icon icon-sm" viewBox="0 0 24 24">
             <line x1="18" y1="6" x2="6" y2="18"></line>
             <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -228,7 +230,7 @@
         </button>
       </div>
       <img id="storyViewerImg" src="" alt="Story" style="width: 100%; height: 100%; object-fit: cover;">
-      <div id="storyViewerCaption" style="position: absolute; bottom: 20px; left: 15px; right: 15px; background: rgba(0,0,0,0.65); padding: 0.6rem 0.85rem; border-radius: var(--radius-sm); font-size: 0.82rem; color: #fff;"></div>
+      <div id="storyViewerCaption" style="position: absolute; bottom: 20px; left: 15px; right: 15px; background: rgba(8, 10, 14, 0.75); backdrop-filter: blur(8px); padding: 0.7rem 0.95rem; border-radius: var(--radius-sm); border: 1px solid rgba(255,255,255,0.1); font-family: var(--font-sans); font-size: 0.84rem; font-weight: 400; line-height: 1.5; color: #fff;"></div>
     </div>
   </div>
 
