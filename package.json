@@ -2,7 +2,7 @@
   "name": "instagram-api-web",
   "version": "1.0.0",
   "description": "Instagram API Web Integration with Two-Way Synchronization",
-  "main": "src/server.js",
+  "main": "api/index.js",
   "type": "commonjs",
   "scripts": {
     "start": "node src/server.js",
