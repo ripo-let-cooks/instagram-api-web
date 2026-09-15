@@ -21,12 +21,17 @@ router.post('/login', async (req, res) => {
   const { mode, token, username } = req.body;
 
   if (mode === 'real' && token) {
-    process.env.INSTAGRAM_ACCESS_TOKEN = token;
-    const profile = await instagramService.getProfile();
-    currentSession = profile;
-    instagramService.syncRealInstagramMedia().catch(console.error);
-    await db.logActivity('AUTH', `User logged in using real Meta Token (@${profile.username})`);
-    return res.json({ success: true, user: profile });
+    try {
+      process.env.INSTAGRAM_ACCESS_TOKEN = token;
+      const profile = await instagramService.getProfile();
+      currentSession = profile;
+      instagramService.syncRealInstagramMedia().catch(console.error);
+      await db.logActivity('AUTH', `User logged in using real Meta Token (@${profile.username})`);
+      return res.json({ success: true, user: profile });
+    } catch (err) {
+      console.error('Login error:', err);
+      return res.json({ success: false, error: 'Token Meta Graph API tidak valid' });
+    }
   }
 
   // Demo Login

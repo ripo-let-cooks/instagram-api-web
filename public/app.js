@@ -186,6 +186,8 @@
       el.authModal.classList.remove('open');
       showToast('Terhubung ke Meta Graph API');
       loadAllData();
+    } else {
+      showToast(data.error || 'Token tidak valid atau gagal terhubung', 'error');
     }
   });
 
@@ -740,6 +742,8 @@
         el.storyUploadModal.classList.remove('open');
         await fetchStories();
         await fetchLogs();
+      } else {
+        showToast(data.error || 'Gagal mengunggah story', 'error');
       }
     } catch (err) {
       showToast('Gagal mengunggah story', 'error');

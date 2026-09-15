@@ -60,7 +60,8 @@ router.post('/', upload.single('media'), async (req, res, next) => {
 
     return res.status(201).json({ success: true, post });
   } catch (err) {
-    next(err);
+    console.error('Post upload error:', err);
+    return res.status(500).json({ success: false, error: err.message });
   }
 });
 

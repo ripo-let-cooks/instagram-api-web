@@ -52,7 +52,8 @@ router.post('/', upload.single('media'), async (req, res, next) => {
     await db.logActivity('STORY_CREATE', `Created new story via Web`, JSON.stringify(story));
     return res.status(201).json({ success: true, story });
   } catch (err) {
-    next(err);
+    console.error('Story upload error:', err);
+    return res.status(500).json({ success: false, error: err.message });
   }
 });
 
