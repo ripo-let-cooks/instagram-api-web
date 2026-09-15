@@ -4,9 +4,9 @@ const db = require('../db');
 const instagramService = require('../services/instagramService');
 
 // Mounted at /api/posts/:id/comments or /api/comments
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   const postId = req.params.id;
-  const comments = db.getComments(postId);
+  const comments = await db.getComments(postId);
   return res.json({ success: true, comments });
 });
 
@@ -36,10 +36,10 @@ router.post('/', async (req, res, next) => {
   }
 });
 
-router.delete('/:commentId', (req, res) => {
-  const ok = db.deleteComment(req.params.commentId);
+router.delete('/:commentId', async (req, res) => {
+  const ok = await db.deleteComment(req.params.commentId);
   if (ok) {
-    db.logActivity('COMMENT_DELETE', `Deleted comment ${req.params.commentId}`);
+    await db.logActivity('COMMENT_DELETE', `Deleted comment ${req.params.commentId}`);
   }
   return res.json({ success: ok });
 });

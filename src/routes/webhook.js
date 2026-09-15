@@ -4,7 +4,7 @@ const db = require('../db');
 const instagramService = require('../services/instagramService');
 
 // Verification endpoint for Meta Graph API Webhooks
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   const mode = req.query['hub.mode'];
   const token = req.query['hub.verify_token'];
   const challenge = req.query['hub.challenge'];
@@ -12,7 +12,7 @@ router.get('/', (req, res) => {
   const expectedToken = process.env.WEBHOOK_VERIFY_TOKEN || 'instabridge_secret_2026';
 
   if (mode === 'subscribe' && token === expectedToken) {
-    db.logActivity('WEBHOOK_CHALLENGE', 'Meta Webhook verified successfully');
+    await db.logActivity('WEBHOOK_CHALLENGE', 'Meta Webhook verified successfully');
     return res.status(200).send(challenge);
   }
 

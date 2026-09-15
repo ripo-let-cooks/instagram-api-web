@@ -1,28 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
+const { put } = require('@vercel/blob');
 const path = require('node:path');
-const fs = require('node:fs');
 const db = require('../db');
 const instagramService = require('../services/instagramService');
 
-const uploadsDir = path.join(__dirname, '..', '..', 'uploads');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-}
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadsDir);
-  },
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase();
-    cb(null, `media_${Date.now()}_${Math.floor(Math.random() * 10000)}${ext}`);
-  }
-});
-
 const upload = multer({
-  storage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB max
   fileFilter: (req, file, cb) => {
     const allowed = /jpeg|jpg|png|webp|mp4/;
@@ -36,13 +21,13 @@ const upload = multer({
   }
 });
 
-router.get('/', (req, res) => {
-  const posts = db.getPosts();
+router.get('/', async (req, res) => {
+  const posts = await db.getPosts();
   return res.json({ success: true, posts });
 });
 
-router.get('/:id', (req, res) => {
-  const post = db.getPost(req.params.id);
+router.get('/:id', async (req, res) => {
+  const post = await db.getPost(req.params.id);
   if (!post) {
     return res.status(404).json({ success: false, error: 'Post tidak ditemukan' });
   }
@@ -55,7 +40,10 @@ router.post('/', upload.single('media'), async (req, res, next) => {
     let mediaUrl = req.body.mediaUrl;
 
     if (req.file) {
-      mediaUrl = `/uploads/${req.file.filename}`;
+      const blob = await put(req.file.originalname, req.file.buffer, {
+        access: 'public',
+      });
+      mediaUrl = blob.url;
     }
 
     if (!mediaUrl) {
@@ -76,27 +64,27 @@ router.post('/', upload.single('media'), async (req, res, next) => {
   }
 });
 
-router.post('/:id/like', (req, res) => {
-  const post = db.likePost(req.params.id);
+router.post('/:id/like', async (req, res) => {
+  const post = await db.likePost(req.params.id);
   if (!post) {
     return res.status(404).json({ success: false, error: 'Post tidak ditemukan' });
   }
-  db.logActivity('LIKE', `Liked post ${req.params.id}`, JSON.stringify({ likes: post.like_count }));
+  await db.logActivity('LIKE', `Liked post ${req.params.id}`, JSON.stringify({ likes: post.like_count }));
   return res.json({ success: true, post });
 });
 
-router.post('/:id/unlike', (req, res) => {
-  const post = db.unlikePost(req.params.id);
+router.post('/:id/unlike', async (req, res) => {
+  const post = await db.unlikePost(req.params.id);
   if (!post) {
     return res.status(404).json({ success: false, error: 'Post tidak ditemukan' });
   }
-  db.logActivity('UNLIKE', `Unliked post ${req.params.id}`, JSON.stringify({ likes: post.like_count }));
+  await db.logActivity('UNLIKE', `Unliked post ${req.params.id}`, JSON.stringify({ likes: post.like_count }));
   return res.json({ success: true, post });
 });
 
-router.delete('/:id', (req, res) => {
-  const ok = db.deletePost(req.params.id);
-  db.logActivity('POST_DELETE', `Deleted post ${req.params.id}`);
+router.delete('/:id', async (req, res) => {
+  const ok = await db.deletePost(req.params.id);
+  await db.logActivity('POST_DELETE', `Deleted post ${req.params.id}`);
   return res.json({ success: ok });
 });
 

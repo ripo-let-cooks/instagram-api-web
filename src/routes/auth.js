@@ -25,27 +25,27 @@ router.post('/login', async (req, res) => {
     const profile = await instagramService.getProfile();
     currentSession = profile;
     instagramService.syncRealInstagramMedia().catch(console.error);
-    db.logActivity('AUTH', `User logged in using real Meta Token (@${profile.username})`);
+    await db.logActivity('AUTH', `User logged in using real Meta Token (@${profile.username})`);
     return res.json({ success: true, user: profile });
   }
 
   // Demo Login
   delete process.env.INSTAGRAM_ACCESS_TOKEN;
-  const demoUser = db.getUser('demo_user_1');
+  const demoUser = await db.getUser('demo_user_1');
   currentSession = {
     ...demoUser,
     is_demo: 1,
     mode_label: 'Simulator Engine'
   };
-  db.logActivity('AUTH', `User logged in using Demo Account (@${demoUser.username})`);
+  await db.logActivity('AUTH', `User logged in using Demo Account (@${demoUser.username})`);
   return res.json({ success: true, user: currentSession });
 });
 
-router.post('/logout', (req, res) => {
+router.post('/logout', async (req, res) => {
   const username = currentSession ? currentSession.username : 'user';
   currentSession = null;
   delete process.env.INSTAGRAM_ACCESS_TOKEN;
-  db.logActivity('AUTH', `User @${username} logged out`);
+  await db.logActivity('AUTH', `User @${username} logged out`);
   return res.json({ success: true, message: 'Logged out successfully' });
 });
 

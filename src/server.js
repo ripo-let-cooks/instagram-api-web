@@ -14,13 +14,15 @@ const simulatorRouter = require('./routes/simulator');
 function createApp() {
   const app = express();
 
+  // Initialize DB on cold start
+  db.initDb().catch(err => console.error('DB Init Error:', err));
+
   app.use(cors());
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
   // Static Assets
   app.use(express.static(path.join(__dirname, '..', 'public')));
-  app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
   // REST API Routes
   app.use('/api/auth', authRouter);

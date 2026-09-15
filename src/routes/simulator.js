@@ -44,9 +44,9 @@ router.post('/trigger', async (req, res, next) => {
 });
 
 // Activity logs for the Terminal Log Console
-router.get('/logs', (req, res) => {
+router.get('/logs', async (req, res) => {
   const limit = parseInt(req.query.limit, 10) || 50;
-  const logs = db.getLogs(limit);
+  const logs = await db.getLogs(limit);
   return res.json({ success: true, logs });
 });
 
