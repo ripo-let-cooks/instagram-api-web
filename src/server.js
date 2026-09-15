@@ -48,9 +48,10 @@ function createApp() {
   return app;
 }
 
+const app = createApp();
+
 if (require.main === module) {
   db.initDb();
-  const app = createApp();
   const PORT = process.env.PORT || 3000;
   app.listen(PORT, () => {
     console.log(`🚀 InstaBridge Server is running at http://localhost:${PORT}`);
@@ -58,4 +59,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { createApp };
+module.exports = app;
