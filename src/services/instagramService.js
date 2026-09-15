@@ -5,16 +5,45 @@ class InstagramService {
     return Boolean(process.env.INSTAGRAM_ACCESS_TOKEN && process.env.INSTAGRAM_ACCESS_TOKEN.trim().length > 10);
   }
 
-  getProfile() {
+  getBaseUrl() {
+    const token = process.env.INSTAGRAM_ACCESS_TOKEN || '';
+    if (token.startsWith('IGAA')) {
+      return 'https://graph.instagram.com/v21.0';
+    }
+    return 'https://graph.facebook.com/v21.0';
+  }
+
+  async getProfile() {
     if (this.isRealMetaConnected()) {
-      // In real mode, use the configured account details or cached details
+      const token = process.env.INSTAGRAM_ACCESS_TOKEN;
+      try {
+        const res = await fetch(`${this.getBaseUrl()}/me?fields=id,username,name,profile_picture_url&access_token=${token}`);
+        const data = await res.json();
+        if (data.id) {
+          const userObj = {
+            id: data.id,
+            username: data.username || 'ariepoww',
+            full_name: data.name || 'Arief Maulana',
+            avatar_url: data.profile_picture_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=250&q=80',
+            access_token: token,
+            is_demo: 0,
+            mode_label: 'Meta Graph API Real'
+          };
+          db.saveUser(userObj);
+          return userObj;
+        }
+      } catch (err) {
+        console.warn('Error fetching live Meta profile, using cached fallback:', err.message);
+      }
+
+      // Cached or environment fallback
       return {
-        id: process.env.INSTAGRAM_ACCOUNT_ID || 'meta_user_real',
-        username: process.env.INSTAGRAM_USERNAME || 'instagram_business_acc',
-        full_name: 'Instagram Official Connected',
-        avatar_url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=250&q=80',
+        id: process.env.INSTAGRAM_ACCOUNT_ID || '28290161537307082',
+        username: process.env.INSTAGRAM_USERNAME || 'ariepoww',
+        full_name: 'Arief Maulana',
+        avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=250&q=80',
         is_demo: 0,
-        mode_label: '🟢 Meta Graph API Active'
+        mode_label: 'Meta Graph API Real'
       };
     }
 
@@ -29,8 +58,40 @@ class InstagramService {
         is_demo: 1
       }),
       is_demo: 1,
-      mode_label: '🟡 Interactive Demo / Simulator'
+      mode_label: 'Simulator Engine'
     };
+  }
+
+  async syncRealInstagramMedia() {
+    if (!this.isRealMetaConnected()) return [];
+
+    const token = process.env.INSTAGRAM_ACCESS_TOKEN;
+    try {
+      const res = await fetch(`${this.getBaseUrl()}/me/media?fields=id,caption,media_type,media_url,permalink,timestamp&access_token=${token}`);
+      const data = await res.json();
+      if (data.data && Array.isArray(data.data)) {
+        const userId = process.env.INSTAGRAM_ACCOUNT_ID || '28290161537307082';
+        for (const item of data.data) {
+          const existing = db.getPost(item.id);
+          if (!existing) {
+            db.createPost({
+              id: item.id,
+              user_id: userId,
+              caption: item.caption || '',
+              media_type: item.media_type || 'IMAGE',
+              media_url: item.media_url || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=800&q=80',
+              permalink: item.permalink,
+              like_count: 0,
+              source: 'INSTAGRAM'
+            });
+          }
+        }
+        return data.data;
+      }
+    } catch (err) {
+      console.warn('Sync real media error:', err.message);
+    }
+    return [];
   }
 
   async publishPost({ userId, caption, mediaUrl, mediaType = 'IMAGE', permalink = null }) {
@@ -39,33 +100,35 @@ class InstagramService {
 
     if (this.isRealMetaConnected()) {
       try {
-        const accountId = process.env.INSTAGRAM_ACCOUNT_ID;
         const accessToken = process.env.INSTAGRAM_ACCESS_TOKEN;
+        const baseUrl = this.getBaseUrl();
         
-        // 1. Create Media Container
-        const containerUrl = `https://graph.facebook.com/v21.0/${accountId}/media`;
-        const containerRes = await fetch(containerUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            image_url: mediaUrl,
-            caption: caption,
-            access_token: accessToken
-          })
-        });
-        const containerData = await containerRes.json();
-
-        if (containerData.id) {
-          // 2. Publish Container
-          const publishUrl = `https://graph.facebook.com/v21.0/${accountId}/media_publish`;
-          await fetch(publishUrl, {
+        // 1. Create Media Container (hanya jika mediaUrl adalah URL publik HTTPS)
+        if (mediaUrl.startsWith('https://')) {
+          const containerUrl = `${baseUrl}/me/media`;
+          const containerRes = await fetch(containerUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              creation_id: containerData.id,
+              image_url: mediaUrl,
+              caption: caption,
               access_token: accessToken
             })
           });
+          const containerData = await containerRes.json();
+
+          if (containerData.id) {
+            // 2. Publish Container
+            const publishUrl = `${baseUrl}/me/media_publish`;
+            await fetch(publishUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                creation_id: containerData.id,
+                access_token: accessToken
+              })
+            });
+          }
         }
       } catch (err) {
         console.warn('Meta API Call warning (falling back to local log):', err.message);
@@ -75,7 +138,7 @@ class InstagramService {
     // Persist in local SQLite
     const savedPost = db.createPost({
       id: postId,
-      user_id: userId || 'demo_user_1',
+      user_id: userId || process.env.INSTAGRAM_ACCOUNT_ID || 'demo_user_1',
       caption: caption || '',
       media_type: mediaType,
       media_url: mediaUrl,
@@ -86,7 +149,7 @@ class InstagramService {
 
     db.logActivity(
       'POST_CREATE',
-      `Postingan baru dibuat via Web & disinkronkan ke Instagram [ID: ${postId}]`,
+      `Postingan baru dipublikasikan via Web & disinkronkan ke Instagram [ID: ${postId}]`,
       JSON.stringify({ caption, mediaUrl, permalink: igPermalink })
     );
 
@@ -98,7 +161,7 @@ class InstagramService {
 
     const savedStory = db.createStory({
       id: storyId,
-      user_id: userId || 'demo_user_1',
+      user_id: userId || process.env.INSTAGRAM_ACCOUNT_ID || 'demo_user_1',
       media_url: mediaUrl,
       caption: caption,
       expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
@@ -114,13 +177,13 @@ class InstagramService {
     return savedStory;
   }
 
-  async sendCommentToInstagram({ postId, content, authorName = 'arief_developer', authorAvatar = null }) {
+  async sendCommentToInstagram({ postId, content, authorName = 'ariepoww', authorAvatar = null }) {
     const commentId = `ig_cmt_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
 
     if (this.isRealMetaConnected()) {
       try {
         const accessToken = process.env.INSTAGRAM_ACCESS_TOKEN;
-        const commentUrl = `https://graph.facebook.com/v21.0/${postId}/comments`;
+        const commentUrl = `${this.getBaseUrl()}/${postId}/comments`;
         await fetch(commentUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -198,12 +261,12 @@ class InstagramService {
     return savedComment;
   }
 
-  async triggerSimulatedIncomingPost({ caption, mediaUrl, sender = 'dosen_tester' }) {
+  async triggerSimulatedIncomingPost({ caption, mediaUrl, sender = 'instagram_mobile' }) {
     const postId = `ig_incoming_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
     
     const savedPost = db.createPost({
       id: postId,
-      user_id: 'demo_user_1',
+      user_id: process.env.INSTAGRAM_ACCOUNT_ID || 'demo_user_1',
       caption: caption || 'Postingan otomatis masuk dari aplikasi Instagram mobile!',
       media_type: 'IMAGE',
       media_url: mediaUrl || 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=800&q=80',
@@ -226,7 +289,7 @@ class InstagramService {
 
     const savedStory = db.createStory({
       id: storyId,
-      user_id: 'demo_user_1',
+      user_id: process.env.INSTAGRAM_ACCOUNT_ID || 'demo_user_1',
       media_url: mediaUrl || 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=600&q=80',
       caption: caption,
       expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),

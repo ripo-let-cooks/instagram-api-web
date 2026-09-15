@@ -21,10 +21,10 @@ test.afterEach(() => {
   }
 });
 
-test('instagramService defaults to demo mode when no Meta token configured', () => {
+test('instagramService defaults to demo mode when no Meta token configured', async () => {
   delete process.env.INSTAGRAM_ACCESS_TOKEN;
   assert.equal(instagramService.isRealMetaConnected(), false);
-  const profile = instagramService.getProfile();
+  const profile = await instagramService.getProfile();
   assert.equal(profile.is_demo, 1);
   assert.equal(profile.username, 'arief_developer');
 });

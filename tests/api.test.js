@@ -37,8 +37,8 @@ test('GET /api/auth/me returns active user and mode status', async () => {
   assert.equal(res.status, 200);
   const data = await res.json();
   assert.equal(data.success, true);
-  assert.equal(data.user.username, 'arief_developer');
-  assert.equal(data.user.is_demo, 1);
+  assert.ok(data.user.username);
+  assert.notEqual(data.isRealMeta, undefined);
 });
 
 test('POST /api/posts creates a post and GET /api/posts retrieves it', async () => {

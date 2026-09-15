@@ -5,8 +5,11 @@ const instagramService = require('../services/instagramService');
 
 let currentSession = null;
 
-router.get('/me', (req, res) => {
-  const profile = instagramService.getProfile();
+router.get('/me', async (req, res) => {
+  const profile = await instagramService.getProfile();
+  if (instagramService.isRealMetaConnected()) {
+    instagramService.syncRealInstagramMedia().catch(console.error);
+  }
   return res.json({
     success: true,
     user: currentSession || profile,
@@ -14,14 +17,15 @@ router.get('/me', (req, res) => {
   });
 });
 
-router.post('/login', (req, res) => {
+router.post('/login', async (req, res) => {
   const { mode, token, username } = req.body;
 
   if (mode === 'real' && token) {
     process.env.INSTAGRAM_ACCESS_TOKEN = token;
-    const profile = instagramService.getProfile();
+    const profile = await instagramService.getProfile();
     currentSession = profile;
-    db.logActivity('AUTH', `User logged in using real Meta Token (${profile.username})`);
+    instagramService.syncRealInstagramMedia().catch(console.error);
+    db.logActivity('AUTH', `User logged in using real Meta Token (@${profile.username})`);
     return res.json({ success: true, user: profile });
   }
 
@@ -31,7 +35,7 @@ router.post('/login', (req, res) => {
   currentSession = {
     ...demoUser,
     is_demo: 1,
-    mode_label: '🟡 Interactive Demo / Simulator'
+    mode_label: 'Simulator Engine'
   };
   db.logActivity('AUTH', `User logged in using Demo Account (@${demoUser.username})`);
   return res.json({ success: true, user: currentSession });
