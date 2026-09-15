@@ -49,4 +49,12 @@ router.post('/', upload.single('media'), async (req, res, next) => {
   }
 });
 
+router.delete('/:id', (req, res) => {
+  const ok = db.deleteStory(req.params.id);
+  if (ok) {
+    db.logActivity('STORY_DELETE', `Deleted story ${req.params.id}`);
+  }
+  return res.json({ success: ok });
+});
+
 module.exports = router;

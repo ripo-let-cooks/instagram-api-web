@@ -85,6 +85,15 @@ router.post('/:id/like', (req, res) => {
   return res.json({ success: true, post });
 });
 
+router.post('/:id/unlike', (req, res) => {
+  const post = db.unlikePost(req.params.id);
+  if (!post) {
+    return res.status(404).json({ success: false, error: 'Post tidak ditemukan' });
+  }
+  db.logActivity('UNLIKE', `Unliked post ${req.params.id}`, JSON.stringify({ likes: post.like_count }));
+  return res.json({ success: true, post });
+});
+
 router.delete('/:id', (req, res) => {
   const ok = db.deletePost(req.params.id);
   db.logActivity('POST_DELETE', `Deleted post ${req.params.id}`);

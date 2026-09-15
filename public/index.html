@@ -33,11 +33,6 @@
       </div>
 
       <div class="header-controls">
-        <div id="connectionStatus" class="status-badge" title="Status koneksi engine">
-          <span class="status-dot"></span>
-          <span id="connectionStatusText">Memeriksa koneksi</span>
-        </div>
-
         <button id="btnThemeToggle" class="theme-toggle-btn" title="Ganti Tema" aria-label="Ganti Tema">
           <svg id="themeIconSun" class="icon icon-sm" viewBox="0 0 24 24" style="display: none;">
             <circle cx="12" cy="12" r="5"></circle>
@@ -222,12 +217,22 @@
           <img id="storyViewerAvatar" src="" class="user-avatar-micro" alt="Avatar">
           <span id="storyViewerUsername" style="font-family: var(--font-sans); font-size: 0.85rem; font-weight: 600; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,0.6);">@user</span>
         </div>
-        <button id="btnCloseStory" style="cursor: pointer; color: #fff; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5));">
-          <svg class="icon icon-sm" viewBox="0 0 24 24">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        </button>
+        <div style="display: flex; align-items: center; gap: 0.85rem;">
+          <button id="btnDeleteStory" style="cursor: pointer; color: #ef4444; opacity: 0.9; transition: opacity 0.2s ease; display: none; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5));">
+            <svg class="icon icon-sm" viewBox="0 0 24 24">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              <line x1="10" y1="11" x2="10" y2="17"></line>
+              <line x1="14" y1="11" x2="14" y2="17"></line>
+            </svg>
+          </button>
+          <button id="btnCloseStory" style="cursor: pointer; color: #fff; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5));">
+            <svg class="icon icon-sm" viewBox="0 0 24 24">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
       </div>
       <img id="storyViewerImg" src="" alt="Story" style="width: 100%; height: 100%; object-fit: cover;">
       <div id="storyViewerCaption" style="position: absolute; bottom: 20px; left: 15px; right: 15px; background: rgba(8, 10, 14, 0.75); backdrop-filter: blur(8px); padding: 0.7rem 0.95rem; border-radius: var(--radius-sm); border: 1px solid rgba(255,255,255,0.1); font-family: var(--font-sans); font-size: 0.84rem; font-weight: 400; line-height: 1.5; color: #fff;"></div>
@@ -299,7 +304,25 @@
   </div>
 
   <!-- Notification Rack -->
-  <div id="toastContainer" class="notification-rack"></div>
+  <!-- Confirm Modal -->
+  <div id="confirmModal" class="overlay-backdrop" aria-modal="true" style="z-index: 200;">
+    <div class="modal-dialog" style="max-width: 320px; text-align: center; gap: 0.85rem; padding: 1.5rem;">
+      <div style="margin: 0 auto 0.25rem; width: 44px; height: 44px; border-radius: 50%; background: rgba(239, 68, 68, 0.15); color: #ef4444; display: flex; align-items: center; justify-content: center;">
+        <svg class="icon icon-lg" viewBox="0 0 24 24">
+          <polyline points="3 6 5 6 21 6"></polyline>
+          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+        </svg>
+      </div>
+      <h3 id="confirmModalTitle" style="font-family: var(--font-serif); font-size: 1.15rem; color: var(--text-primary); margin: 0;">Konfirmasi</h3>
+      <p id="confirmModalText" style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.4; margin: 0 0 0.5rem 0;">Apakah Anda yakin?</p>
+      <div style="display: flex; gap: 0.75rem; width: 100%;">
+        <button id="btnConfirmCancel" class="btn-dev-action" style="flex: 1; justify-content: center; background: var(--bg-surface-elevated);">Batal</button>
+        <button id="btnConfirmOk" class="btn-submit-post" style="flex: 1; justify-content: center; background: #ef4444; color: #fff; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);">Hapus</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toastContainer" class="notification-rack" aria-live="polite"></div>
 
   <script src="app.js"></script>
 </body>

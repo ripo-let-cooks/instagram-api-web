@@ -55,6 +55,7 @@
     storyViewerImg: document.getElementById('storyViewerImg'),
     storyViewerCaption: document.getElementById('storyViewerCaption'),
     btnCloseStory: document.getElementById('btnCloseStory'),
+    btnDeleteStory: document.getElementById('btnDeleteStory'),
     storyUploadModal: document.getElementById('storyUploadModal'),
     storyUploadForm: document.getElementById('storyUploadForm'),
     storyFileInput: document.getElementById('storyFileInput'),
@@ -277,6 +278,7 @@
 
     el.btnPublish.disabled = true;
     el.btnPublish.innerHTML = '<span>Memproses publikasi...</span>';
+    el.createPostForm.classList.add('uploading-pulse');
 
     try {
       const formData = new FormData();
@@ -311,6 +313,7 @@
     } finally {
       el.btnPublish.disabled = false;
       el.btnPublish.innerHTML = '<span>Publikasikan ke Instagram & Web</span>';
+      el.createPostForm.classList.remove('uploading-pulse');
     }
   });
 
@@ -382,8 +385,16 @@
             <div class="post-date">${formatTimeAgo(post.created_at)}</div>
           </div>
         </div>
-        <div>
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
           ${originBadge}
+          <button class="btn-interaction btn-delete-post" data-post-id="${post.id}" title="Hapus Post" style="color: var(--text-muted); opacity: 0.6; transition: all 0.2s ease;">
+            <svg class="icon icon-sm" viewBox="0 0 24 24">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              <line x1="10" y1="11" x2="10" y2="17"></line>
+              <line x1="14" y1="11" x2="14" y2="17"></line>
+            </svg>
+          </button>
         </div>
       </div>
 
@@ -441,19 +452,78 @@
       </div>
     `;
 
-    // Likes
+    // Likes / Unlike
     const btnLike = card.querySelector('.btn-like');
     btnLike.addEventListener('click', async () => {
       try {
-        const res = await fetch(`/api/posts/${post.id}/like`, { method: 'POST' });
+        const isLiked = btnLike.classList.contains('active');
+        const endpoint = isLiked ? `/api/posts/${post.id}/unlike` : `/api/posts/${post.id}/like`;
+        const res = await fetch(endpoint, { method: 'POST' });
         const data = await res.json();
         if (data.success) {
           btnLike.querySelector('.like-count').textContent = data.post.like_count;
-          btnLike.classList.add('active');
+          if (isLiked) {
+            btnLike.classList.remove('active');
+          } else {
+            btnLike.classList.add('active');
+          }
         }
       } catch (err) {
         console.error('Like error:', err);
       }
+    });
+
+    // Delete Post
+    const btnDelete = card.querySelector('.btn-delete-post');
+    if (btnDelete) {
+      btnDelete.addEventListener('mouseenter', () => {
+        btnDelete.style.opacity = '1';
+        btnDelete.style.color = 'var(--danger-color, #ef4444)';
+      });
+      btnDelete.addEventListener('mouseleave', () => {
+        btnDelete.style.opacity = '0.6';
+        btnDelete.style.color = 'var(--text-muted)';
+      });
+      btnDelete.addEventListener('click', async () => {
+        if (!(await showConfirmModal('Hapus Postingan', 'Apakah Anda yakin ingin menghapus postingan ini secara permanen?'))) return;
+        try {
+          const res = await fetch(`/api/posts/${post.id}`, { method: 'DELETE' });
+          const data = await res.json();
+          if (data.success) {
+            showToast('Post berhasil dihapus');
+            card.style.opacity = '0';
+            setTimeout(() => {
+              fetchFeed();
+              fetchLogs();
+            }, 300);
+          } else {
+            showToast('Gagal menghapus post', 'error');
+          }
+        } catch (err) {
+          showToast('Kesalahan koneksi saat menghapus post', 'error');
+        }
+      });
+    }
+
+    // Delete Comments
+    card.querySelectorAll('.btn-delete-comment').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        const commentId = e.currentTarget.dataset.commentId;
+        if (!(await showConfirmModal('Hapus Komentar', 'Apakah Anda yakin ingin menghapus komentar ini?'))) return;
+        try {
+          const res = await fetch(`/api/comments/${commentId}`, { method: 'DELETE' });
+          const data = await res.json();
+          if (data.success) {
+            showToast('Komentar berhasil dihapus');
+            e.currentTarget.closest('.thread-item').remove();
+            fetchLogs();
+          } else {
+            showToast('Gagal menghapus komentar', 'error');
+          }
+        } catch (err) {
+          showToast('Kesalahan saat menghapus', 'error');
+        }
+      });
     });
 
     // Focus comment
@@ -512,11 +582,17 @@
     return `
       <div class="thread-item">
         <img src="${comment.author_avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&q=80'}" class="thread-avatar" alt="Avatar">
-        <div class="thread-content">
-          <div class="thread-meta">
+        <div class="thread-content" style="flex: 1;">
+          <div class="thread-meta" style="display: flex; align-items: center; gap: 0.5rem;">
             <span class="thread-author">@${escapeHtml(comment.author_name)}</span>
             ${tag}
             <span style="font-size: 0.68rem; color: var(--text-dim);">${formatTimeAgo(comment.created_at)}</span>
+            <button class="btn-delete-comment" data-comment-id="${comment.id}" title="Hapus Komentar">
+              <svg class="icon icon-sm" viewBox="0 0 24 24" style="width: 14px; height: 14px;">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
           </div>
           <div class="thread-text">${escapeHtml(comment.content)}</div>
         </div>
@@ -579,6 +655,9 @@
     el.storyViewerCaption.textContent = story.caption || '';
     el.storyViewerCaption.style.display = story.caption ? 'block' : 'none';
 
+    el.btnDeleteStory.dataset.storyId = story.id;
+    el.btnDeleteStory.style.display = 'block';
+
     el.storyProgressFill.style.transition = 'none';
     el.storyProgressFill.style.width = '0%';
     el.storyModal.classList.add('open');
@@ -600,6 +679,28 @@
   }
 
   el.btnCloseStory.addEventListener('click', closeStoryViewer);
+  
+  el.btnDeleteStory.addEventListener('click', async () => {
+    const storyId = el.btnDeleteStory.dataset.storyId;
+    if (!storyId) return;
+    if (!(await showConfirmModal('Hapus Story', 'Apakah Anda yakin ingin menghapus story ini secara permanen?'))) return;
+    
+    try {
+      const res = await fetch(`/api/stories/${storyId}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (data.success) {
+        showToast('Story berhasil dihapus');
+        closeStoryViewer();
+        fetchStories();
+        fetchLogs();
+      } else {
+        showToast('Gagal menghapus story', 'error');
+      }
+    } catch (err) {
+      showToast('Kesalahan koneksi saat menghapus story', 'error');
+    }
+  });
+
   el.storyModal.addEventListener('click', (e) => {
     if (e.target === el.storyModal) closeStoryViewer();
   });
@@ -628,6 +729,7 @@
 
     const submitBtn = el.storyUploadForm.querySelector('button[type="submit"]');
     submitBtn.disabled = true;
+    el.storyUploadForm.classList.add('uploading-pulse');
 
     try {
       const res = await fetch('/api/stories', { method: 'POST', body: formData });
@@ -643,6 +745,7 @@
       showToast('Gagal mengunggah story', 'error');
     } finally {
       submitBtn.disabled = false;
+      el.storyUploadForm.classList.remove('uploading-pulse');
     }
   });
 
@@ -790,23 +893,58 @@
   // 9. Toast Notification Utility (Clean & Non-disruptive)
   // =========================================================================
 
-  function showToast(message, type = 'info') {
+  function showToast(msg, type = 'success') {
     const toast = document.createElement('div');
     toast.className = 'notification-item';
     
-    const iconSvg = type === 'error'
-      ? `<svg class="icon icon-sm" style="stroke: #ef4444;" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>`
-      : `<svg class="icon icon-sm" style="stroke: #10b981;" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+    const iconColor = type === 'success' ? '#10b981' : '#ef4444';
+    const iconSvg = type === 'success' 
+      ? '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline>'
+      : '<circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line>';
 
-    toast.innerHTML = `${iconSvg}<span>${escapeHtml(message)}</span>`;
+    toast.innerHTML = `
+      <svg class="icon icon-sm" viewBox="0 0 24 24" style="color: ${iconColor};">
+        ${iconSvg}
+      </svg>
+      <span>${escapeHtml(msg)}</span>
+    `;
+
     el.toastContainer.appendChild(toast);
-
     setTimeout(() => {
       toast.style.opacity = '0';
       toast.style.transform = 'translateY(8px)';
       toast.style.transition = 'all 0.2s ease';
       setTimeout(() => toast.remove(), 200);
-    }, 2800);
+    }, 3000);
+  }
+
+  // Custom Confirm Modal Helper
+  const domConfirmModal = document.getElementById('confirmModal');
+  const domBtnConfirmCancel = document.getElementById('btnConfirmCancel');
+  const domBtnConfirmOk = document.getElementById('btnConfirmOk');
+  const domConfirmModalText = document.getElementById('confirmModalText');
+  const domConfirmModalTitle = document.getElementById('confirmModalTitle');
+
+  function showConfirmModal(title, text) {
+    return new Promise((resolve) => {
+      if (!domConfirmModal) return resolve(confirm(text)); // Fallback if HTML missing
+      
+      domConfirmModalTitle.textContent = title;
+      domConfirmModalText.textContent = text;
+      domConfirmModal.classList.add('open');
+      
+      const onOk = () => { cleanup(); resolve(true); };
+      const onCancel = () => { cleanup(); resolve(false); };
+      
+      const cleanup = () => {
+        domConfirmModal.classList.remove('open');
+        domBtnConfirmOk.removeEventListener('click', onOk);
+        domBtnConfirmCancel.removeEventListener('click', onCancel);
+      };
+      
+      domBtnConfirmOk.addEventListener('click', onOk);
+      domBtnConfirmCancel.addEventListener('click', onCancel);
+    });
   }
 
   function escapeHtml(str) {

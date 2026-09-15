@@ -36,4 +36,12 @@ router.post('/', async (req, res, next) => {
   }
 });
 
+router.delete('/:commentId', (req, res) => {
+  const ok = db.deleteComment(req.params.commentId);
+  if (ok) {
+    db.logActivity('COMMENT_DELETE', `Deleted comment ${req.params.commentId}`);
+  }
+  return res.json({ success: ok });
+});
+
 module.exports = router;

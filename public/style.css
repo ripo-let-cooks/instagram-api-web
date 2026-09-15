@@ -1226,3 +1226,42 @@ a {
     padding: 0 1rem;
   }
 }
+
+/* Upload Animations & Transitions */
+.uploading-pulse {
+  animation: uploadingPulse 1.5s infinite ease-in-out;
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+@keyframes uploadingPulse {
+  0% { transform: scale(1); opacity: 0.8; filter: brightness(1); }
+  50% { transform: scale(0.98); opacity: 0.5; filter: brightness(0.8); }
+  100% { transform: scale(1); opacity: 0.8; filter: brightness(1); }
+}
+
+/* Delete Comment Button */
+.btn-delete-comment {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  opacity: 0;
+  cursor: pointer;
+  padding: 0.2rem;
+  border-radius: var(--radius-xs);
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: auto;
+}
+
+.thread-item:hover .btn-delete-comment {
+  opacity: 0.4;
+}
+
+.btn-delete-comment:hover {
+  opacity: 1 !important;
+  color: var(--danger-color, #ef4444);
+  background: var(--bg-surface-elevated);
+}

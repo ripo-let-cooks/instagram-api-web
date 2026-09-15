@@ -182,6 +182,13 @@ function likePost(id) {
   return getPost(id);
 }
 
+function unlikePost(id) {
+  const db = getDb();
+  // Ensure like_count doesn't go below 0
+  db.prepare('UPDATE posts SET like_count = MAX(0, like_count - 1) WHERE id = ?').run(id);
+  return getPost(id);
+}
+
 function deletePost(id) {
   const db = getDb();
   db.prepare('DELETE FROM posts WHERE id = ?').run(id);
@@ -215,6 +222,12 @@ function createStory(story) {
   return db.prepare('SELECT * FROM stories WHERE id = ?').get(story.id);
 }
 
+function deleteStory(id) {
+  const db = getDb();
+  db.prepare('DELETE FROM stories WHERE id = ?').run(id);
+  return true;
+}
+
 function getComments(postId) {
   const db = getDb();
   return db.prepare(`
@@ -241,6 +254,12 @@ function addComment(comment) {
     comment.synced_to_ig ?? 1
   );
   return db.prepare('SELECT * FROM comments WHERE id = ?').get(comment.id);
+}
+
+function deleteComment(id) {
+  const db = getDb();
+  db.prepare('DELETE FROM comments WHERE id = ?').run(id);
+  return true;
 }
 
 function logActivity(eventType, description, payloadPreview = null) {
@@ -279,11 +298,14 @@ module.exports = {
   getPost,
   createPost,
   likePost,
+  unlikePost,
   deletePost,
   getStories,
   createStory,
+  deleteStory,
   getComments,
   addComment,
+  deleteComment,
   logActivity,
   getLogs
 };
