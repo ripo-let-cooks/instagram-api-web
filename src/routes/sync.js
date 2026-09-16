@@ -8,7 +8,7 @@ router.post('/', async (req, res) => {
       const profile = await instagramService.getProfile();
       if (profile && profile.id) {
         // Fix retroactive error
-        await require('../db').client.execute({
+        await require('../db').getDb().execute({
           sql: 'UPDATE posts SET user_id = ? WHERE user_id = ? AND source = ?',
           args: [profile.id, 'demo_user_1', 'INSTAGRAM']
         });
