@@ -29,10 +29,6 @@ function createApp() {
   app.use('/api/stories', storiesRouter);
   app.use('/api/webhook', webhookRouter);
   app.use('/api/simulator', simulatorRouter);
-  app.use('/api/logs', (req, res) => {
-    const limit = parseInt(req.query.limit, 10) || 50;
-    return res.json({ success: true, logs: db.getLogs(limit) });
-  });
 
   // Global Error Handler
   app.use((err, req, res, next) => {
