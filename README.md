@@ -88,3 +88,22 @@ Berikut adalah skenario urutan demo yang direkomendasikan saat presentasi tugas 
 | **5. Komentar IG $\rightarrow$ Web** | Buka **Simulator Panel** di pojok kanan bawah $\rightarrow$ Klik *"Simulasi Komentar dari IG (@dosen_tester)"* | Dalam beberapa detik, komentar dari `@dosen_tester` dengan label `[📸 dari Instagram]` langsung muncul otomatis di web tanpa harus reload halaman browser (F5). |
 | **6. Upload Story** | Klik lingkaran `+ Cerita Anda` $\rightarrow$ Upload foto story $\rightarrow$ Klik lingkaran story yang muncul | Story Viewer modal terbuka dengan indikator progress bar berdurasi 5 detik. |
 | **7. Persistensi Data** | Matikan server (`Ctrl + C`) di terminal $\rightarrow$ Jalankan kembali `npm start` $\rightarrow$ Refresh browser | Tunjukkan kepada dosen bahwa semua postingan dan komentar sebelumnya tetap tersimpan utuh di file `database.sqlite`. |
+
+---
+
+## ⚖️ Analisis Kelebihan & Kekurangan Web (Pros & Cons)
+
+Sebagai bahan evaluasi atau presentasi, berikut adalah kelebihan dan kekurangan dari arsitektur aplikasi web ini:
+
+### ✅ Kelebihan (Plus)
+1. **Terhubung ke Real Meta Graph API (Two-Way Sync)**: Bukan sekadar web replika statis, web ini benar-benar "berkomunikasi" dengan server raksasa Meta. Anda bisa mengunggah Story/Foto dari web ini dan melihatnya terbit di aplikasi Instagram asli Anda. Begitu juga sebaliknya.
+2. **Arsitektur Super Ringan & Portable (Zero-Config)**: Tidak memerlukan instalasi database berat seperti MySQL/PostgreSQL atau XAMPP. Menggunakan SQLite bawaan Node.js yang tersimpan dalam satu file (`database.sqlite`). Sangat mudah dipindah-pindah antar laptop untuk presentasi.
+3. **UI/UX Premium (Anti-Slop Design)**: Menghindari desain framework kaku seperti Bootstrap. Menggunakan murni Vanilla CSS modern dengan implementasi *Dark Mode*, tipografi eksklusif, efek transisi (*skeleton shimmer*), animasi mikro, dan UI yang bersih ala aplikasi *high-end*.
+4. **Interactive Simulator Mode**: Fitur penyelamat presentasi! Jika di hari-H presentasi jaringan internet kampus mati atau Token Meta kedaluwarsa, web bisa langsung beralih ke Mode Simulator tanpa hambatan, seolah-olah API berjalan normal.
+5. **Transparansi Log di Layar (Terminal Log Console)**: Menampilkan aliran data JSON (REST API) secara *real-time* di sudut layar. Sangat krusial untuk membuktikan kepada dosen bahwa integrasi API benar-benar terjadi, bukan sekadar manipulasi JavaScript biasa.
+
+### ❌ Kekurangan (Minus)
+1. **Dibatasi oleh Kebijakan Ketat Keamanan Meta**: Fitur "Hapus Postingan" dan "Tekan Tombol Like" hanya berfungsi secara lokal di web kita, dan tidak berefek ke Instagram asli. Ini **bukan kelemahan kode**, melainkan batasan keamanan mutlak dari Meta yang melarang aplikasi pihak ketiga menghapus konten atau memanipulasi tombol Like demi mencegah Bot/Spam.
+2. **Sangat Bergantung pada Kestabilan *Tunneling***: Karena dijalankan dari komputer lokal (`localhost`), server Instagram tidak bisa mengirim data balik (Webhook) jika kita tidak menggunakan Terowongan Internet (seperti *localhost.run* atau *localtunnel*). Jika koneksi terowongan ini goyah, sinkronisasi dua arah akan tersendat.
+3. **Kecepatan Proses Asinkron Meta**: Saat menekan tombol *Upload Story*, Instagram butuh waktu 3-7 detik untuk mengunduh gambar dari komputer kita sebelum mempublikasikannya. Hal ini membutuhkan sistem "Antre & Tunggu" (Delay Retry) di kode backend agar tidak ditolak oleh server Meta.
+4. **Fitur Media Sosial Terbatas**: Web ini difokuskan penuh pada studi kasus inti integrasi API (Upload Gambar, Story, Fetch Feed, dan Komentar). Fitur tingkat lanjut seperti Reels, Filter Kamera AR, atau Direct Message (DM) tidak diimplementasikan karena keterbatasan izin (Permissions) Graph API untuk akun kelas Developer biasa.

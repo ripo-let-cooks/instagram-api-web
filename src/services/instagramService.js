@@ -66,28 +66,53 @@ class InstagramService {
     if (!this.isRealMetaConnected()) return [];
 
     const token = process.env.INSTAGRAM_ACCESS_TOKEN;
+    const igUserId = process.env.INSTAGRAM_ACCOUNT_ID || 'me';
+    
     try {
-      const res = await fetch(`${this.getBaseUrl()}/me/media?fields=id,caption,media_type,media_url,permalink,timestamp&access_token=${token}`);
+      // 1. Sync Feed Media
+      const res = await fetch(`${this.getBaseUrl()}/${igUserId}/media?fields=id,caption,media_type,media_url,permalink,timestamp&access_token=${token}`);
       const data = await res.json();
       if (data.data && Array.isArray(data.data)) {
-        const userId = process.env.INSTAGRAM_ACCOUNT_ID || '28290161537307082';
         for (const item of data.data) {
-          const existing = await db.getPost(item.id);
-          if (!existing) {
+          if (!(await db.getPost(item.id))) {
             await db.createPost({
               id: item.id,
-              user_id: userId,
+              user_id: igUserId === 'me' ? 'demo_user_1' : igUserId,
               caption: item.caption || '',
               media_type: item.media_type || 'IMAGE',
               media_url: item.media_url || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=800&q=80',
-              permalink: item.permalink,
+              permalink: item.permalink || `https://instagram.com/p/${item.id}`,
               like_count: 0,
               source: 'INSTAGRAM'
             });
           }
         }
-        return data.data;
       }
+
+      // 2. Sync Stories
+      if (igUserId !== 'me') {
+        const storyRes = await fetch(`${this.getBaseUrl()}/${igUserId}/stories?fields=id,caption,media_type,media_url,timestamp&access_token=${token}`);
+        const storyData = await storyRes.json();
+        if (storyData.data && Array.isArray(storyData.data)) {
+          for (const item of storyData.data) {
+            // Kita cari pakai regex jika id story dari API belum tersimpan
+            const stories = await db.getStoriesByUser(igUserId);
+            const exists = stories.find(s => s.id === item.id);
+            if (!exists) {
+              await db.createStory({
+                id: item.id,
+                user_id: igUserId,
+                media_url: item.media_url,
+                caption: item.caption || '',
+                expires_at: new Date(new Date(item.timestamp).getTime() + 24 * 60 * 60 * 1000).toISOString(),
+                source: 'INSTAGRAM'
+              });
+            }
+          }
+        }
+      }
+      
+      return data.data || [];
     } catch (err) {
       console.warn('Sync real media error:', err.message);
     }
@@ -103,14 +128,15 @@ class InstagramService {
         const accessToken = process.env.INSTAGRAM_ACCESS_TOKEN;
         const baseUrl = this.getBaseUrl();
         
-        // 1. Create Media Container
-        if (mediaUrl.startsWith('https://')) {
-          const containerUrl = `${baseUrl}/me/media`;
+        const targetUrl = mediaUrl.startsWith('http://') ? mediaUrl.replace('http://', 'https://') : mediaUrl;
+        if (targetUrl.startsWith('https://')) {
+          const igUserId = userId || process.env.INSTAGRAM_ACCOUNT_ID || 'me';
+          const containerUrl = `${baseUrl}/${igUserId}/media`;
           const containerRes = await fetch(containerUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              image_url: mediaUrl,
+              image_url: targetUrl,
               caption: caption,
               access_token: accessToken
             })
@@ -118,16 +144,31 @@ class InstagramService {
           const containerData = await containerRes.json();
 
           if (containerData.id) {
+            // Instagram needs time to download the image from our server
+            await new Promise(resolve => setTimeout(resolve, 4000));
+
             // 2. Publish Container
-            const publishUrl = `${baseUrl}/me/media_publish`;
-            await fetch(publishUrl, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                creation_id: containerData.id,
-                access_token: accessToken
-              })
-            });
+            const publishUrl = `${baseUrl}/${igUserId}/media_publish`;
+            
+            let publishData = null;
+            for (let i = 0; i < 3; i++) {
+              const publishRes = await fetch(publishUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  creation_id: containerData.id,
+                  access_token: accessToken
+                })
+              });
+              publishData = await publishRes.json();
+              
+              if (publishData.error && publishData.error.code === 9007) {
+                console.log(`Media not ready (Feed), retrying in 3 seconds... (Attempt ${i+1})`);
+                await new Promise(resolve => setTimeout(resolve, 3000));
+                continue;
+              }
+              break;
+            }
           }
         }
       } catch (err) {
@@ -135,7 +176,7 @@ class InstagramService {
       }
     }
 
-    // Persist in local Postgres
+    // Persist in local SQLite
     const savedPost = await db.createPost({
       id: postId,
       user_id: userId || process.env.INSTAGRAM_ACCOUNT_ID || 'demo_user_1',
@@ -158,6 +199,68 @@ class InstagramService {
 
   async publishStory({ userId, mediaUrl, caption = '' }) {
     const storyId = `ig_story_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+
+    if (this.isRealMetaConnected()) {
+      try {
+        const accessToken = process.env.INSTAGRAM_ACCESS_TOKEN;
+        const baseUrl = this.getBaseUrl();
+        
+        const targetUrl = mediaUrl.startsWith('http://') ? mediaUrl.replace('http://', 'https://') : mediaUrl;
+        if (targetUrl.startsWith('https://')) {
+          const igUserId = userId || process.env.INSTAGRAM_ACCOUNT_ID || 'me';
+          const containerUrl = `${baseUrl}/${igUserId}/media`;
+          const containerRes = await fetch(containerUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              image_url: targetUrl,
+              media_type: 'STORIES',
+              access_token: accessToken
+            })
+          });
+          const containerData = await containerRes.json();
+          if (containerData.error) {
+            console.error('Meta API Error (Story Container):', containerData.error);
+          }
+
+          if (containerData.id) {
+            // Instagram needs time to download the image from our server
+            await new Promise(resolve => setTimeout(resolve, 4000));
+            
+            const publishUrl = `${baseUrl}/${igUserId}/media_publish`;
+            
+            let publishData = null;
+            for (let i = 0; i < 3; i++) {
+              const publishRes = await fetch(publishUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  creation_id: containerData.id,
+                  access_token: accessToken
+                })
+              });
+              publishData = await publishRes.json();
+              
+              if (publishData.error && publishData.error.code === 9007) {
+                // Media not ready, wait and try again
+                console.log(`Media not ready, retrying in 3 seconds... (Attempt ${i+1})`);
+                await new Promise(resolve => setTimeout(resolve, 3000));
+                continue;
+              }
+              break; // Success or unrecoverable error
+            }
+
+            if (publishData && publishData.error) {
+              console.error('Meta API Error (Story Publish):', publishData.error);
+            } else {
+              console.log('Successfully published story to Meta!', publishData);
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('Meta API Story Call warning:', err.message);
+      }
+    }
 
     const savedStory = await db.createStory({
       id: storyId,
@@ -219,6 +322,7 @@ class InstagramService {
   async processWebhookEvent(payload) {
     await db.logActivity('WEBHOOK_RECEIVE', 'Menerima payload webhook dari Meta/Simulator', JSON.stringify(payload));
     
+    // Check if event is comment
     if (payload.entry && payload.entry[0]?.changes) {
       for (const change of payload.entry[0].changes) {
         if (change.field === 'comments') {

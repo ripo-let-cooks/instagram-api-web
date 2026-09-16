@@ -2,15 +2,14 @@
   "name": "instagram-api-web",
   "version": "1.0.0",
   "description": "Instagram API Web Integration with Two-Way Synchronization",
-  "main": "api/index.js",
+  "main": "src/server.js",
   "type": "commonjs",
   "scripts": {
     "start": "node src/server.js",
     "test": "node --test tests/*.test.js"
   },
   "dependencies": {
-    "@vercel/blob": "^2.8.0",
-    "@vercel/postgres": "^0.10.0",
+    "@libsql/client": "^0.18.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",

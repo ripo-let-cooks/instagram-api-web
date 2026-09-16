@@ -173,21 +173,33 @@
       return;
     }
 
-    const res = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ mode: 'real', token })
-    });
-    const data = await res.json();
-    if (data.success) {
-      state.currentUser = data.user;
-      state.isRealMeta = true;
-      renderAuthUI();
+    el.btnSubmitMetaToken.disabled = true;
+    const originalText = el.btnSubmitMetaToken.innerHTML;
+    el.btnSubmitMetaToken.innerHTML = 'Memeriksa Token... ⏳';
+
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: 'real', token })
+      });
+      const data = await res.json();
+      
+      // Selalu tutup pop up agar tidak terasa stuck
       el.authModal.classList.remove('open');
-      showToast('Terhubung ke Meta Graph API');
-      loadAllData();
-    } else {
-      showToast(data.error || 'Token tidak valid atau gagal terhubung', 'error');
+
+      if (data.success) {
+        state.currentUser = data.user;
+        state.isRealMeta = true;
+        renderAuthUI();
+        showToast('Terhubung ke Meta Graph API');
+        loadAllData();
+      } else {
+        showToast(data.error || 'Token tidak valid', 'error');
+      }
+    } finally {
+      el.btnSubmitMetaToken.disabled = false;
+      el.btnSubmitMetaToken.innerHTML = originalText;
     }
   });
 
@@ -308,7 +320,7 @@
         await fetchFeed();
         await fetchLogs();
       } else {
-        showToast(data.error || 'Gagal mempublikasikan konten', 'error');
+        showToast(data.error || 'Gagal mempublikasikan post', 'error');
       }
     } catch (err) {
       showToast('Kesalahan koneksi saat publikasi', 'error');
@@ -731,15 +743,19 @@
 
     const submitBtn = el.storyUploadForm.querySelector('button[type="submit"]');
     submitBtn.disabled = true;
+    submitBtn.innerHTML = 'Mengunggah... ⏳';
     el.storyUploadForm.classList.add('uploading-pulse');
 
     try {
       const res = await fetch('/api/stories', { method: 'POST', body: formData });
       const data = await res.json();
+      
+      // Selalu tutup pop up setelah upload selesai
+      el.storyUploadForm.reset();
+      el.storyUploadModal.classList.remove('open');
+
       if (data.success) {
         showToast('Story berhasil diunggah');
-        el.storyUploadForm.reset();
-        el.storyUploadModal.classList.remove('open');
         await fetchStories();
         await fetchLogs();
       } else {
@@ -749,6 +765,7 @@
       showToast('Gagal mengunggah story', 'error');
     } finally {
       submitBtn.disabled = false;
+      submitBtn.innerHTML = 'Bagikan ke Story';
       el.storyUploadForm.classList.remove('uploading-pulse');
     }
   });

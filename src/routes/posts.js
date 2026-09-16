@@ -1,13 +1,28 @@
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
-const { put } = require('@vercel/blob');
 const path = require('node:path');
+const fs = require('node:fs');
 const db = require('../db');
 const instagramService = require('../services/instagramService');
 
+const uploadsDir = path.join(__dirname, '..', '..', 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadsDir);
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    cb(null, `media_${Date.now()}_${Math.floor(Math.random() * 10000)}${ext}`);
+  }
+});
+
 const upload = multer({
-  storage: multer.memoryStorage(),
+  storage,
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB max
   fileFilter: (req, file, cb) => {
     const allowed = /jpeg|jpg|png|webp|mp4/;
@@ -40,10 +55,9 @@ router.post('/', upload.single('media'), async (req, res, next) => {
     let mediaUrl = req.body.mediaUrl;
 
     if (req.file) {
-      const blob = await put(req.file.originalname, req.file.buffer, {
-        access: 'public',
-      });
-      mediaUrl = blob.url;
+      const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+      const host = req.get('host');
+      mediaUrl = `${protocol}://${host}/uploads/${req.file.filename}`;
     }
 
     if (!mediaUrl) {
@@ -60,8 +74,7 @@ router.post('/', upload.single('media'), async (req, res, next) => {
 
     return res.status(201).json({ success: true, post });
   } catch (err) {
-    console.error('Post upload error:', err);
-    return res.status(500).json({ success: false, error: err.message });
+    next(err);
   }
 });
 
