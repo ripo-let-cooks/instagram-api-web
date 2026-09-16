@@ -76,6 +76,9 @@ class InstagramService {
       const res = await fetch(`${this.getBaseUrl()}/${igUserId}/media?fields=id,caption,media_type,media_url,permalink,timestamp&access_token=${token}`);
       const data = await res.json();
       if (data.data && Array.isArray(data.data)) {
+        const metaIds = data.data.map(item => item.id);
+        
+        // Add new posts
         for (const item of data.data) {
           if (!(await db.getPost(item.id))) {
             await db.createPost({
@@ -90,6 +93,15 @@ class InstagramService {
             });
           }
         }
+
+        // Clean up deleted posts from Meta
+        const localPosts = await db.getPosts();
+        const metaLocalPosts = localPosts.filter(p => p.source === 'INSTAGRAM' && /^\d+$/.test(p.id));
+        for (const p of metaLocalPosts) {
+          if (!metaIds.includes(p.id)) {
+            await db.deletePost(p.id);
+          }
+        }
       }
 
       // 2. Sync Stories
@@ -97,9 +109,12 @@ class InstagramService {
         const storyRes = await fetch(`${this.getBaseUrl()}/${igUserId}/stories?fields=id,caption,media_type,media_url,timestamp&access_token=${token}`);
         const storyData = await storyRes.json();
         if (storyData.data && Array.isArray(storyData.data)) {
+          const metaStoryIds = storyData.data.map(item => item.id);
+          const localStories = await db.getStoriesByUser(resolvedUserId);
+
+          // Add new stories
           for (const item of storyData.data) {
-            const stories = await db.getStoriesByUser(resolvedUserId);
-            const exists = stories.find(s => s.id === item.id);
+            const exists = localStories.find(s => s.id === item.id);
             if (!exists) {
               await db.createStory({
                 id: item.id,
@@ -109,6 +124,14 @@ class InstagramService {
                 expires_at: new Date(new Date(item.timestamp).getTime() + 24 * 60 * 60 * 1000).toISOString(),
                 source: 'INSTAGRAM'
               });
+            }
+          }
+
+          // Clean up deleted stories from Meta
+          const metaLocalStories = localStories.filter(s => s.source === 'INSTAGRAM' && /^\d+$/.test(s.id));
+          for (const s of metaLocalStories) {
+            if (!metaStoryIds.includes(s.id)) {
+              await db.deleteStory(s.id);
             }
           }
         }
