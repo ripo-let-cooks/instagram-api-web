@@ -11,6 +11,7 @@ const commentsRouter = require('./routes/comments');
 const webhookRouter = require('./routes/webhook');
 const simulatorRouter = require('./routes/simulator');
 const mediaRouter = require('./routes/media');
+const syncRouter = require('./routes/sync');
 
 function createApp() {
   const app = express();
@@ -31,6 +32,7 @@ function createApp() {
   app.use('/api/webhook', webhookRouter);
   app.use('/api/simulator', simulatorRouter);
   app.use('/api/media', mediaRouter);
+  app.use('/api/sync', syncRouter);
 
   // Global Error Handler
   app.use((err, req, res, next) => {

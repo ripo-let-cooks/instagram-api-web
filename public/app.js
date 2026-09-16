@@ -614,11 +614,28 @@
     `;
   }
 
-  el.btnRefreshFeed.addEventListener('click', () => {
-    fetchFeed();
-    fetchStories();
-    fetchLogs();
-    showToast('Sinkronisasi selesai');
+  el.btnRefreshFeed.addEventListener('click', async () => {
+    el.btnRefreshFeed.disabled = true;
+    el.btnRefreshFeed.innerHTML = 'Menyinkronkan...';
+    try {
+      await fetch('/api/sync', { method: 'POST' });
+      await fetchFeed();
+      await fetchStories();
+      await fetchLogs();
+      showToast('Sinkronisasi selesai');
+    } catch (err) {
+      showToast('Gagal melakukan sinkronisasi', 'error');
+    } finally {
+      el.btnRefreshFeed.disabled = false;
+      el.btnRefreshFeed.innerHTML = `
+        <svg class="icon icon-sm" viewBox="0 0 24 24">
+          <polyline points="23 4 23 10 17 10"></polyline>
+          <polyline points="1 20 1 14 7 14"></polyline>
+          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+        </svg>
+        <span>Sinkronkan</span>
+      `;
+    }
   });
 
   // =========================================================================
