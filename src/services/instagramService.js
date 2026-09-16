@@ -69,6 +69,9 @@ class InstagramService {
     const igUserId = process.env.INSTAGRAM_ACCOUNT_ID || 'me';
     
     try {
+      const profile = await this.getProfile();
+      const resolvedUserId = profile.id;
+
       // 1. Sync Feed Media
       const res = await fetch(`${this.getBaseUrl()}/${igUserId}/media?fields=id,caption,media_type,media_url,permalink,timestamp&access_token=${token}`);
       const data = await res.json();
@@ -77,7 +80,7 @@ class InstagramService {
           if (!(await db.getPost(item.id))) {
             await db.createPost({
               id: item.id,
-              user_id: igUserId === 'me' ? 'demo_user_1' : igUserId,
+              user_id: resolvedUserId,
               caption: item.caption || '',
               media_type: item.media_type || 'IMAGE',
               media_url: item.media_url || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=800&q=80',
@@ -95,13 +98,12 @@ class InstagramService {
         const storyData = await storyRes.json();
         if (storyData.data && Array.isArray(storyData.data)) {
           for (const item of storyData.data) {
-            // Kita cari pakai regex jika id story dari API belum tersimpan
-            const stories = await db.getStoriesByUser(igUserId);
+            const stories = await db.getStoriesByUser(resolvedUserId);
             const exists = stories.find(s => s.id === item.id);
             if (!exists) {
               await db.createStory({
                 id: item.id,
-                user_id: igUserId,
+                user_id: resolvedUserId,
                 media_url: item.media_url,
                 caption: item.caption || '',
                 expires_at: new Date(new Date(item.timestamp).getTime() + 24 * 60 * 60 * 1000).toISOString(),
