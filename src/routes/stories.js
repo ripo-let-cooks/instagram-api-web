@@ -6,14 +6,7 @@ const fs = require('node:fs');
 const db = require('../db');
 const instagramService = require('../services/instagramService');
 
-const uploadsDir = path.join(__dirname, '..', '..', 'uploads');
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadsDir),
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase();
-    cb(null, `story_${Date.now()}_${Math.floor(Math.random() * 10000)}${ext}`);
-  }
-});
+const storage = multer.memoryStorage();
 const upload = multer({
   storage,
   limits: { fileSize: 5 * 1024 * 1024 }
@@ -30,9 +23,9 @@ router.post('/', upload.single('media'), async (req, res, next) => {
     let mediaUrl = req.body.mediaUrl;
 
     if (req.file) {
-      const protocol = req.headers['x-forwarded-proto'] || req.protocol;
-      const host = req.get('host');
-      mediaUrl = `${protocol}://${host}/uploads/${req.file.filename}`;
+      const base64Image = req.file.buffer.toString('base64');
+      const mimeType = req.file.mimetype;
+      mediaUrl = `data:${mimeType};base64,${base64Image}`;
     }
 
     if (!mediaUrl) {

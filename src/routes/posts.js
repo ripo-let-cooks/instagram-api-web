@@ -6,21 +6,7 @@ const fs = require('node:fs');
 const db = require('../db');
 const instagramService = require('../services/instagramService');
 
-const uploadsDir = path.join(__dirname, '..', '..', 'uploads');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-}
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadsDir);
-  },
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase();
-    cb(null, `media_${Date.now()}_${Math.floor(Math.random() * 10000)}${ext}`);
-  }
-});
-
+const storage = multer.memoryStorage();
 const upload = multer({
   storage,
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB max
@@ -55,14 +41,14 @@ router.post('/', upload.single('media'), async (req, res, next) => {
     let mediaUrl = req.body.mediaUrl;
 
     if (req.file) {
-      const protocol = req.headers['x-forwarded-proto'] || req.protocol;
-      const host = req.get('host');
-      mediaUrl = `${protocol}://${host}/uploads/${req.file.filename}`;
+      // Convert file buffer to Base64 URL so it can be saved directly in the database without local files
+      const base64Image = req.file.buffer.toString('base64');
+      const mimeType = req.file.mimetype;
+      mediaUrl = `data:${mimeType};base64,${base64Image}`;
     }
 
     if (!mediaUrl) {
-      // Default fallback visual if none provided
-      mediaUrl = `https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=800&q=80`;
+      mediaUrl = 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=800&q=80';
     }
 
     const post = await instagramService.publishPost({
