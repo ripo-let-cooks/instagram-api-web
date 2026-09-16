@@ -123,6 +123,18 @@ class InstagramService {
     const postId = `ig_post_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
     const igPermalink = permalink || `https://instagram.com/p/${postId.substring(8)}`;
 
+    // Persist in local SQLite FIRST so that /api/media/:id can find the base64 string
+    const savedPost = await db.createPost({
+      id: postId,
+      user_id: userId || process.env.INSTAGRAM_ACCOUNT_ID || 'demo_user_1',
+      caption: caption || '',
+      media_type: mediaType,
+      media_url: mediaUrl,
+      permalink: igPermalink,
+      like_count: 0,
+      source: 'WEB'
+    });
+
     if (this.isRealMetaConnected()) {
       try {
         const accessToken = process.env.INSTAGRAM_ACCESS_TOKEN;
@@ -182,18 +194,6 @@ class InstagramService {
       }
     }
 
-    // Persist in local SQLite
-    const savedPost = await db.createPost({
-      id: postId,
-      user_id: userId || process.env.INSTAGRAM_ACCOUNT_ID || 'demo_user_1',
-      caption: caption || '',
-      media_type: mediaType,
-      media_url: mediaUrl,
-      permalink: igPermalink,
-      like_count: 0,
-      source: 'WEB'
-    });
-
     await db.logActivity(
       'POST_CREATE',
       `Postingan baru dipublikasikan via Web & disinkronkan ke Instagram [ID: ${postId}]`,
@@ -205,6 +205,15 @@ class InstagramService {
 
   async publishStory({ userId, mediaUrl, caption = '', appBaseUrl = null }) {
     const storyId = `ig_story_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+
+    const savedStory = await db.createStory({
+      id: storyId,
+      user_id: userId || process.env.INSTAGRAM_ACCOUNT_ID || 'demo_user_1',
+      media_url: mediaUrl,
+      caption: caption,
+      expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+      source: 'WEB'
+    });
 
     if (this.isRealMetaConnected()) {
       try {
@@ -273,15 +282,6 @@ class InstagramService {
         console.warn('Meta API Story Call warning:', err.message);
       }
     }
-
-    const savedStory = await db.createStory({
-      id: storyId,
-      user_id: userId || process.env.INSTAGRAM_ACCOUNT_ID || 'demo_user_1',
-      media_url: mediaUrl,
-      caption: caption,
-      expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-      source: 'WEB'
-    });
 
     await db.logActivity(
       'STORY_CREATE',
