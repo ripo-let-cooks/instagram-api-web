@@ -10,13 +10,14 @@ const storiesRouter = require('./routes/stories');
 const commentsRouter = require('./routes/comments');
 const webhookRouter = require('./routes/webhook');
 const simulatorRouter = require('./routes/simulator');
+const mediaRouter = require('./routes/media');
 
 function createApp() {
   const app = express();
 
   app.use(cors());
-  app.use(express.json());
-  app.use(express.urlencoded({ extended: true }));
+  app.use(express.json({ limit: '10mb' }));
+  app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
   // Static Assets
   app.use(express.static(path.join(__dirname, '..', 'public')));
@@ -29,6 +30,7 @@ function createApp() {
   app.use('/api/stories', storiesRouter);
   app.use('/api/webhook', webhookRouter);
   app.use('/api/simulator', simulatorRouter);
+  app.use('/api/media', mediaRouter);
 
   // Global Error Handler
   app.use((err, req, res, next) => {

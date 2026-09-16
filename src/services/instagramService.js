@@ -119,7 +119,7 @@ class InstagramService {
     return [];
   }
 
-  async publishPost({ userId, caption, mediaUrl, mediaType = 'IMAGE', permalink = null }) {
+  async publishPost({ userId, caption, mediaUrl, mediaType = 'IMAGE', permalink = null, appBaseUrl = null }) {
     const postId = `ig_post_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
     const igPermalink = permalink || `https://instagram.com/p/${postId.substring(8)}`;
 
@@ -128,7 +128,13 @@ class InstagramService {
         const accessToken = process.env.INSTAGRAM_ACCESS_TOKEN;
         const baseUrl = this.getBaseUrl();
         
-        const targetUrl = mediaUrl.startsWith('http://') ? mediaUrl.replace('http://', 'https://') : mediaUrl;
+        let targetUrl = mediaUrl;
+        if (mediaUrl.startsWith('data:') && appBaseUrl) {
+          targetUrl = `${appBaseUrl}/api/media/${postId}`;
+        } else if (mediaUrl.startsWith('http://')) {
+          targetUrl = mediaUrl.replace('http://', 'https://');
+        }
+
         if (targetUrl.startsWith('https://')) {
           const igUserId = userId || process.env.INSTAGRAM_ACCOUNT_ID || 'me';
           const containerUrl = `${baseUrl}/${igUserId}/media`;
@@ -197,7 +203,7 @@ class InstagramService {
     return savedPost;
   }
 
-  async publishStory({ userId, mediaUrl, caption = '' }) {
+  async publishStory({ userId, mediaUrl, caption = '', appBaseUrl = null }) {
     const storyId = `ig_story_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
 
     if (this.isRealMetaConnected()) {
@@ -205,7 +211,13 @@ class InstagramService {
         const accessToken = process.env.INSTAGRAM_ACCESS_TOKEN;
         const baseUrl = this.getBaseUrl();
         
-        const targetUrl = mediaUrl.startsWith('http://') ? mediaUrl.replace('http://', 'https://') : mediaUrl;
+        let targetUrl = mediaUrl;
+        if (mediaUrl.startsWith('data:') && appBaseUrl) {
+          targetUrl = `${appBaseUrl}/api/media/${storyId}`;
+        } else if (mediaUrl.startsWith('http://')) {
+          targetUrl = mediaUrl.replace('http://', 'https://');
+        }
+
         if (targetUrl.startsWith('https://')) {
           const igUserId = userId || process.env.INSTAGRAM_ACCOUNT_ID || 'me';
           const containerUrl = `${baseUrl}/${igUserId}/media`;

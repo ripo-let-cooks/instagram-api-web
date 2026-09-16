@@ -32,10 +32,15 @@ router.post('/', upload.single('media'), async (req, res, next) => {
       mediaUrl = 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=600&q=80';
     }
 
+    const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+    const host = req.get('host');
+    const appBaseUrl = `${protocol}://${host}`;
+
     const story = await instagramService.publishStory({
       userId: userId || 'demo_user_1',
       mediaUrl,
-      caption: caption || ''
+      caption: caption || '',
+      appBaseUrl
     });
 
     return res.status(201).json({ success: true, story });

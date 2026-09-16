@@ -51,11 +51,16 @@ router.post('/', upload.single('media'), async (req, res, next) => {
       mediaUrl = 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=800&q=80';
     }
 
+    const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+    const host = req.get('host');
+    const appBaseUrl = `${protocol}://${host}`;
+
     const post = await instagramService.publishPost({
       userId: userId || 'demo_user_1',
       caption: caption || '',
       mediaUrl,
-      mediaType: mediaUrl.endsWith('.mp4') ? 'VIDEO' : 'IMAGE'
+      mediaType: mediaUrl.endsWith('.mp4') ? 'VIDEO' : 'IMAGE',
+      appBaseUrl
     });
 
     return res.status(201).json({ success: true, post });
