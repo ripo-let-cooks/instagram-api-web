@@ -102,8 +102,16 @@ Sebagai bahan evaluasi atau presentasi, berikut adalah kelebihan dan kekurangan 
 4. **Interactive Simulator Mode**: Fitur penyelamat presentasi! Jika di hari-H presentasi jaringan internet kampus mati atau Token Meta kedaluwarsa, web bisa langsung beralih ke Mode Simulator tanpa hambatan, seolah-olah API berjalan normal.
 5. **Transparansi Log di Layar (Terminal Log Console)**: Menampilkan aliran data JSON (REST API) secara *real-time* di sudut layar. Sangat krusial untuk membuktikan kepada dosen bahwa integrasi API benar-benar terjadi, bukan sekadar manipulasi JavaScript biasa.
 
-### ❌ Kekurangan (Minus)
-1. **Dibatasi oleh Kebijakan Ketat Keamanan Meta**: Fitur "Hapus Postingan" dan "Tekan Tombol Like" hanya berfungsi secara lokal di web kita, dan tidak berefek ke Instagram asli. Ini **bukan kelemahan kode**, melainkan batasan keamanan mutlak dari Meta yang melarang aplikasi pihak ketiga menghapus konten atau memanipulasi tombol Like demi mencegah Bot/Spam.
-2. **Sangat Bergantung pada Kestabilan *Tunneling***: Karena dijalankan dari komputer lokal (`localhost`), server Instagram tidak bisa mengirim data balik (Webhook) jika kita tidak menggunakan Terowongan Internet (seperti *localhost.run* atau *localtunnel*). Jika koneksi terowongan ini goyah, sinkronisasi dua arah akan tersendat.
-3. **Kecepatan Proses Asinkron Meta**: Saat menekan tombol *Upload Story*, Instagram butuh waktu 3-7 detik untuk mengunduh gambar dari komputer kita sebelum mempublikasikannya. Hal ini membutuhkan sistem "Antre & Tunggu" (Delay Retry) di kode backend agar tidak ditolak oleh server Meta.
-4. **Fitur Media Sosial Terbatas**: Web ini difokuskan penuh pada studi kasus inti integrasi API (Upload Gambar, Story, Fetch Feed, dan Komentar). Fitur tingkat lanjut seperti Reels, Filter Kamera AR, atau Direct Message (DM) tidak diimplementasikan karena keterbatasan izin (Permissions) Graph API untuk akun kelas Developer biasa.
+### ❌ Kekurangan & Batasan Resmi dari Meta (Instagram)
+Dalam pengerjaan integrasi ini, terdapat beberapa batasan absolut dari server Meta yang tidak bisa dihindari, antara lain:
+
+1. **Pembatasan Tarik Data Story (Basic Display API vs Graph API)**: 
+   - Jika menggunakan token standar (*Instagram Basic Display API*, awalan `IGAA...`), Meta **melarang total** pihak ketiga untuk menarik/membaca Story dari Instagram asli ke dalam web kita. Anda hanya bisa menarik Postingan (Foto/Video Feed).
+   - Akses untuk menarik Story hanya dibuka jika Anda mendaftar sebagai Akun Bisnis/Kreator (*Instagram Graph API*).
+   - Namun, web kita tetap berhasil mengakali sistem sehingga Anda **BISA** mempublikasikan/mengupload Story *dari* Web ke Instagram, meskipun sebaliknya tidak bisa.
+2. **Kewajiban URL Publik untuk Upload Media**: Server Meta menolak keras pengiriman foto dalam bentuk kode rahasia (*Base64 String*). Meta mewajibkan link `https://...` yang valid dan bisa di-*download*. Ini diselesaikan di web kita menggunakan mekanisme *Proxy Endpoint* otomatis `/api/media/` yang menyamar sebagai file gambar asli.
+3. **Pembatasan Hapus & Like Postingan**: Fitur "Hapus Postingan" dan "Tekan Tombol Like" hanya berfungsi secara lokal di web kita, dan tidak berefek ke Instagram asli. Ini bukan kelemahan kode, melainkan batasan keamanan mutlak dari Meta untuk mencegah Bot/Spam.
+4. **Keterbatasan Webhook (Pemicu Otomatis)**: Webhook Meta tidak menyediakan notifikasi instan jika Anda membuat Story baru di HP. Notifikasi instan hanya diberikan untuk komentar masuk atau pesan DM.
+5. **Kecepatan Proses Asinkron Meta**: Saat menekan tombol *Upload Story/Post*, Instagram butuh waktu 3-7 detik untuk mengunduh gambar dari server Vercel kita sebelum mempublikasikannya secara resmi. Hal ini membutuhkan sistem "Antre & Cek Ulang" (*Container & Publish Delay Retry*) di kode backend kita.
+
+---
